@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADAPTAKIT · Panel de seguimiento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@500;700;800;900&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: field-gear app. Desktop = phone (operario) + side panel that narrates the method; Supervisor and RR.HH. are full-width boards. */
+:root{
+  --bg:#F2F2F2; --surface:#FFFFFF; --surface2:#F7F7F7; --ink:#1A1A1A; --muted:#5C5C5C; --line:#DADADA;
+  --brand:#E3101E; --brand-ink:#FFFFFF; --brand-soft:#FDE6E7; --amber:#F2B705; --amber-ink:#2A2100; --hi:#FFFFFF;
+  --ok:#1E8E3E; --ok-soft:#DFF2E4; --warn:#9A6A00; --warn-soft:#FCF1CF; --bad:#A3161F; --bad-soft:#F6DCDD;
+  --blue:#1F5FA8; --blue-soft:#E3ECF8; --night:#0B1210; --shadow:0 18px 40px -18px rgba(40,10,10,.35);
+  --display:'Roboto Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --body:'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121212; --surface:#1C1C1C; --surface2:#232323; --ink:#F0F0F0; --muted:#A8A8A8; --line:#333333;
+  --brand:#FF3B47; --brand-ink:#FFFFFF; --brand-soft:#3A1719; --amber:#F2B705; --amber-ink:#2A2100; --hi:#FFFFFF;
+  --ok:#3FBF64; --ok-soft:#163222; --warn:#E5AE2B; --warn-soft:#352B10; --bad:#FF8A80; --bad-soft:#3A1C1C;
+  --blue:#6FA4E8; --blue-soft:#18273A; --night:#0A0A0A; --shadow:0 18px 40px -18px rgba(0,0,0,.7); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121212; --surface:#1C1C1C; --surface2:#232323; --ink:#F0F0F0; --muted:#A8A8A8; --line:#333333;
+  --brand:#FF3B47; --brand-ink:#FFFFFF; --brand-soft:#3A1719; --amber:#F2B705; --amber-ink:#2A2100; --hi:#FFFFFF;
+  --ok:#3FBF64; --ok-soft:#163222; --warn:#E5AE2B; --warn-soft:#352B10; --bad:#FF8A80; --bad-soft:#3A1C1C;
+  --blue:#6FA4E8; --blue-soft:#18273A; --night:#0A0A0A; --shadow:0 18px 40px -18px rgba(0,0,0,.7); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:16px;line-height:1.45;padding-inline:16px;padding-block:0 40px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+.wrap{max-width:1180px;margin:0 auto}
+
+/* top bar */
+.top{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;padding-block:18px 14px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:38px;height:38px;border-radius:10px;background:var(--brand);display:grid;place-items:center}
+.logo-slot{border:2px dashed var(--line);background:var(--surface);border-radius:12px;min-width:150px;height:52px;padding:4px 10px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:13px;font-weight:700}
+.logo-slot.has{border:0;background:transparent;padding:0}
+.logo-slot img{max-height:52px;max-width:180px;display:block}
+.logo-slot.big{height:84px;min-width:0;width:100%}
+.logo-slot.big img{max-height:84px;max-width:220px}
+.sep{width:1px;height:38px;background:var(--line)}
+.redbar{height:4px;background:var(--brand);border-radius:4px;width:72px}
+.disc{margin-top:28px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+.logo b{font-family:var(--display);font-weight:900;font-size:22px;letter-spacing:.02em}
+.logo small{display:block;color:var(--muted);font-size:12px;line-height:1.1}
+.roles{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px;gap:2px;flex-wrap:wrap}
+.roles button{border:0;background:transparent;border-radius:999px;padding:8px 14px;font-family:var(--display);font-weight:700;font-size:14px;color:var(--muted);min-height:40px}
+.roles button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+
+/* operario layout */
+.stage{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:40px;align-items:start}
+.phone{background:var(--night);border-radius:44px;padding:12px;box-shadow:var(--shadow);position:sticky;top:12px}
+.screen{background:var(--surface);border-radius:34px;height:min(780px, calc(100vh - 60px));min-height:600px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.notch{height:26px;display:flex;justify-content:center;align-items:center;flex-shrink:0}
+.notch span{width:90px;height:6px;border-radius:6px;background:var(--line)}
+#app{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-height:0}
+.pad{padding:6px 20px 22px;display:flex;flex-direction:column;gap:14px;flex:1}
+
+.side{display:flex;flex-direction:column;gap:18px;padding-top:8px}
+.side .eyebrow{font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--brand)}
+.side h2{font-size:clamp(28px,3.4vw,44px);line-height:1.02;font-weight:900}
+.side p{margin:0;color:var(--muted);max-width:58ch}
+.cycle{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.cyc{border:2px solid var(--line);border-radius:14px;padding:12px;background:var(--surface);transition:transform .25s, border-color .25s, background .25s}
+.cyc b{font-family:var(--display);font-weight:800;display:block;font-size:15px}
+.cyc span{font-size:13px;color:var(--muted);display:block;margin-top:2px}
+.cyc i{font-style:normal;font-family:var(--display);font-weight:900;font-size:26px;color:var(--line);display:block;line-height:1}
+.cyc.on{border-color:var(--brand);background:var(--brand-soft);transform:translateY(-4px)}
+.cyc.on i{color:var(--brand)}
+.why{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start}
+.why .ic{flex-shrink:0;width:40px;height:40px;border-radius:50%;background:var(--brand);display:grid;place-items:center;color:var(--brand-ink)}
+.why b{font-family:var(--display);display:block;margin-bottom:2px}
+.why p{color:var(--ink)}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.chain span{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+.chain span.k{background:var(--bad-soft);border-color:transparent;color:var(--ink)}
+.chain span.f{background:var(--ok-soft);border-color:transparent;color:var(--ink);font-weight:700}
+
+/* app atoms */
+.hello{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.hello h3{font-size:22px;font-weight:800}
+.muted{color:var(--muted)}
+.tiny{font-size:13px}
+.btn{border:0;border-radius:999px;min-height:50px;padding:12px 18px;font-family:var(--display);font-weight:800;font-size:16px;background:var(--brand);color:var(--brand-ink);display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.btn.ghost{background:var(--surface2);color:var(--ink);border:1.5px solid var(--line)}
+.btn.amber{background:var(--amber);color:var(--amber-ink)}
+.btn.dark{background:var(--ink);color:var(--bg)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.card{background:var(--surface2);border:1px solid var(--line);border-radius:18px;padding:14px 16px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;font-family:var(--display);letter-spacing:.03em}
+.chip.v{background:var(--ok-soft);color:var(--ok)}
+.chip.a{background:var(--warn-soft);color:var(--warn)}
+.chip.r{background:var(--bad-soft);color:var(--bad)}
+.chip.n{background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
+.lamp{width:12px;height:12px;border-radius:50%;display:inline-block;flex-shrink:0}
+.lamp.v{background:var(--ok)}.lamp.a{background:var(--amber)}.lamp.r{background:var(--bad)}.lamp.n{background:var(--line)}
+
+.modcard{display:flex;gap:14px;align-items:center;text-align:left;width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:18px;padding:14px;min-height:76px}
+.modcard:hover:not(:disabled){border-color:var(--brand)}
+.modcard:disabled{opacity:.55;cursor:not-allowed}
+.modnum{width:46px;height:46px;border-radius:14px;background:var(--brand-soft);color:var(--brand);font-family:var(--display);font-weight:900;font-size:20px;display:grid;place-items:center;flex-shrink:0}
+.modcard b{font-family:var(--display);font-size:16px;display:block}
+.modcard .grow{flex:1;min-width:0}
+
+.ring-wrap{display:flex;gap:16px;align-items:center;background:var(--brand);color:var(--brand-ink);border-radius:22px;padding:16px}
+.ring-wrap b{font-family:var(--display);font-size:20px;font-weight:900;display:block;line-height:1.1}
+.ring-wrap span{font-size:13px;opacity:.9}
+
+.steps{display:flex;gap:6px;padding:4px 20px 10px}
+.steps div{flex:1;height:6px;border-radius:6px;background:var(--line)}
+.steps div.on{background:var(--brand)}
+.mhead{display:flex;align-items:center;gap:10px;padding:2px 14px 0}
+.back{border:0;background:var(--surface2);width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+.mhead .t{flex:1;min-width:0}
+.mhead .t small{display:block;color:var(--muted);font-size:12px;font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.mhead .t b{font-family:var(--display);font-size:17px}
+.steplabel{font-family:var(--display);font-weight:900;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--brand)}
+
+.lcard{border-radius:22px;padding:20px;display:flex;flex-direction:column;gap:12px;min-height:300px;animation:slide .35s ease}
+.lcard h3{font-size:24px;font-weight:900;line-height:1.1}
+.lcard ol,.lcard ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.lcard li{display:flex;gap:10px;align-items:flex-start}
+.lcard li .nn{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--brand);color:var(--brand-ink);font-family:var(--display);font-weight:800;font-size:14px;display:grid;place-items:center}
+.lc-porque{background:var(--brand);color:var(--brand-ink)}
+.lc-pasos{background:var(--brand-soft)}
+.lc-errores{background:var(--bad-soft)}
+.lc-duda{background:var(--warn-soft)}
+.dots{display:flex;gap:6px;justify-content:center}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.dots i.on{background:var(--brand);width:22px;border-radius:8px}
+@keyframes slide{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+
+/* quiz */
+.qopt{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:16px;padding:14px;min-height:56px}
+.qopt .bub{width:22px;height:22px;border-radius:50%;border:2.5px solid var(--muted);flex-shrink:0}
+.qopt.sel{border-color:var(--brand);background:var(--brand-soft)}
+.qopt.sel .bub{border-color:var(--brand);background:radial-gradient(circle,var(--brand) 45%,transparent 50%)}
+.qopt.ok{border-color:var(--ok);background:var(--ok-soft)}
+.qopt.bad{border-color:var(--bad);background:var(--bad-soft)}
+.explain{border-radius:14px;padding:12px 14px;font-size:15px;animation:slide .3s ease}
+.explain.ok{background:var(--ok-soft)}
+.explain.bad{background:var(--bad-soft)}
+
+/* semaforo */
+.sema{display:flex;gap:18px;align-items:center;justify-content:center;padding:8px 0}
+.pole{background:var(--night);border-radius:26px;padding:10px;display:flex;flex-direction:column;gap:9px;box-shadow:var(--shadow)}
+.pole i{width:46px;height:46px;border-radius:50%;background:#26302C;display:block;transition:background .3s, box-shadow .3s}
+.pole i.r.on{background:#FF4B4B;box-shadow:0 0 22px 6px rgba(255,75,75,.55)}
+.pole i.a.on{background:#FFC928;box-shadow:0 0 22px 6px rgba(255,201,40,.55)}
+.pole i.v.on{background:#34D46A;box-shadow:0 0 22px 6px rgba(52,212,106,.55)}
+.score{font-family:var(--display);font-weight:900;font-size:54px;line-height:1}
+.fb{display:flex;flex-direction:column;gap:8px}
+.fb div{border-radius:14px;padding:10px 12px;font-size:15px}
+.fb b{font-family:var(--display);display:block;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.stars{display:flex;gap:6px}
+.stars button{border:0;background:transparent;padding:4px;min-width:44px;min-height:44px}
+.stars svg{width:34px;height:34px}
+
+/* sims */
+.toast{border-radius:14px;padding:10px 12px;font-size:15px;min-height:46px;display:flex;align-items:center;gap:8px}
+.toast.ok{background:var(--ok-soft)}.toast.bad{background:var(--bad-soft)}.toast.n{background:var(--surface2);color:var(--muted)}
+.slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.slot{border:2px dashed var(--line);border-radius:12px;aspect-ratio:1;display:grid;place-items:center;font-family:var(--display);font-weight:800;color:var(--muted);font-size:14px;max-width:100%}
+.slot.f{border-style:solid;border-color:var(--ok);background:var(--ok-soft);color:var(--ok);animation:pop .3s ease}
+.items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.item{display:flex;gap:10px;align-items:center;border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:10px;min-height:58px;text-align:left;font-weight:700;font-size:14px}
+.item svg{width:32px;height:32px;flex-shrink:0;color:var(--brand)}
+.item.done{opacity:.35;pointer-events:none}
+.item.shake{animation:shake .4s ease;border-color:var(--bad)}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes pop{0%{transform:scale(.7)}70%{transform:scale(1.08)}100%{transform:none}}
+.scene{border-radius:18px;overflow:hidden;background:#000;touch-action:none;user-select:none}
+.scene svg{display:block;width:100%;height:auto}
+.inf{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:6px}
+.ifield{display:flex;justify-content:space-between;gap:10px;align-items:center;width:100%;text-align:left;border:0;border-bottom:1px dashed var(--line);background:transparent;padding:11px 10px;min-height:48px;border-radius:8px}
+.ifield:last-child{border-bottom:0}
+.ifield .lb{font-size:13px;color:var(--muted);font-weight:700}
+.ifield .vl{font-family:'Segoe Print','Bradley Hand',cursive;color:var(--blue);font-size:16px;text-align:right}
+.ifield.found{background:var(--bad-soft)}
+.ifield.wrong{background:var(--surface2)}
+.ifield.fixed{background:var(--ok-soft)}
+
+/* assistant sheet */
+.sheet{position:absolute;inset:0;background:rgba(5,12,9,.55);display:flex;align-items:flex-end;z-index:5;animation:fade .2s ease}
+.sheet .in{background:var(--surface);width:100%;border-radius:26px 26px 0 0;padding:16px 18px 22px;display:flex;flex-direction:column;gap:12px;max-height:88%;overflow-y:auto}
+.qchips{display:flex;flex-wrap:wrap;gap:6px}
+.qchips button{border:1.5px solid var(--line);background:var(--surface2);border-radius:999px;padding:8px 12px;font-size:14px;min-height:40px}
+textarea{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:12px;font:inherit;background:var(--surface2);color:var(--ink);resize:none}
+input[type=text]{width:100%;border:1.5px solid var(--line);border-radius:14px;padding:14px;font:inherit;font-size:18px;background:var(--surface2);color:var(--ink);min-height:52px}
+.answer{background:var(--brand-soft);border-radius:16px;padding:12px 14px;white-space:pre-wrap;min-height:48px}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.helpbtn{position:sticky;bottom:0;margin-top:auto;padding-top:6px;background:linear-gradient(to bottom,transparent,var(--surface) 30%)}
+
+/* boards */
+.board{display:flex;flex-direction:column;gap:18px}
+.bhead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-end}
+.bhead h2{font-size:clamp(26px,3vw,38px);font-weight:900;line-height:1.05}
+.bhead p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.toggle{display:inline-flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 6px;font-size:14px;min-height:44px}
+.toggle input{appearance:none;width:42px;height:24px;border-radius:999px;background:var(--line);position:relative;margin:0;cursor:pointer;transition:background .2s}
+.toggle input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--surface);transition:transform .2s}
+.toggle input:checked{background:var(--brand)}
+.toggle input:checked::after{transform:translateX(18px)}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi .lbl{font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kpi .val{font-family:var(--display);font-weight:900;font-size:46px;line-height:1;font-variant-numeric:tabular-nums}
+.kpi .val small{font-size:20px;color:var(--muted);font-weight:700}
+.kpi .q{font-size:14px;color:var(--muted)}
+.bar{height:10px;border-radius:10px;background:var(--surface2);overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;border-radius:10px;transition:width .6s ease}
+.grid2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h3{font-size:18px;font-weight:800}
+.stack{display:flex;height:28px;border-radius:8px;overflow:hidden;background:var(--surface2)}
+.stack i{display:block;height:100%;transition:width .6s ease;font-style:normal;font-size:12px;font-weight:700;display:grid;place-items:center;color:#fff;overflow:hidden}
+.srow{display:grid;grid-template-columns:110px minmax(0,1fr) 40px;gap:10px;align-items:center;font-size:14px}
+.weak{display:flex;flex-direction:column;gap:10px}
+.weak>div{display:grid;grid-template-columns:minmax(0,1fr) 54px;gap:10px;align-items:center}
+.weak b{font-variant-numeric:tabular-nums;text-align:right;font-family:var(--display)}
+.live{display:inline-flex;align-items:center;gap:6px;font-family:var(--display);font-weight:800;font-size:12px;letter-spacing:.1em;color:var(--bad)}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--bad);animation:blink 1.4s infinite}
+@keyframes blink{50%{opacity:.25}}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:15px}
+th{font-family:var(--display);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+tr.me td{background:var(--brand-soft)}
+td .mini{display:inline-flex;gap:6px;align-items:center}
+.alert{display:flex;gap:12px;align-items:flex-start;border-radius:16px;padding:12px 14px;background:var(--bad-soft)}
+.linkbtn{border:1.5px solid var(--line);background:var(--surface2);border-radius:10px;padding:8px 12px;font-weight:700;font-size:14px;min-height:40px}
+.drawer{background:var(--surface);border:2px solid var(--brand);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:12px;animation:slide .3s ease}
+.drawer label{font-family:var(--display);font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.note{font-size:13px;color:var(--muted)}
+.empty{border:2px dashed var(--line);border-radius:16px;padding:18px;color:var(--muted);text-align:center}
+@media (max-width:900px){
+  .stage{grid-template-columns:minmax(0,1fr)}
+  .side{order:-1}
+  .phone{position:relative;top:0;border-radius:36px;padding:8px;max-width:440px;margin:0 auto;width:100%}
+  .screen{border-radius:30px;height:720px;min-height:560px}
+  .kpis{grid-template-columns:minmax(0,1fr)}
+  .grid2{grid-template-columns:minmax(0,1fr)}
+  .cycle{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:480px){
+  body{padding-inline:10px}
+  .phone{background:transparent;box-shadow:none;padding:0}
+  .screen{border-radius:24px;border:1px solid var(--line)}
+  .side .why,.chain{display:none}
+}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">
+      <button type="button" class="logo-slot" data-act="pickLogo" aria-label="Poner el logo de la empresa"><span>+ Logo de la empresa</span></button>
+      <span class="sep" aria-hidden="true"></span>
+      <div><b>ADAPTAKIT</b><small>Aprende · Practica · Comprueba · Adáptate</small></div>
+      <input type="file" id="logoFile" accept="image/*" hidden>
+    </div>
+    <nav class="roles" id="rolnav" hidden aria-label="Elegir vista">
+      
+      <button type="button" data-role="supervisor" aria-pressed="true">Supervisor</button>
+      <button type="button" data-role="rrhh" id="tab-rrhh" hidden aria-pressed="false">RR. HH. y psicólogo</button>
+    </nav>
+  </header>
+
+  <section id="gate" class="panel" style="max-width:420px;margin:40px auto;padding:24px">
+    <h2 style="font-size:26px">Panel de seguimiento</h2>
+    <p class="note" style="margin:8px 0 16px">Ingresa el código de acceso que te dieron (supervisores o RR. HH.).</p>
+    <form id="gform" autocomplete="off">
+      <label for="code" class="tiny" style="font-weight:700">Código de acceso</label>
+      <input id="code" type="password" required style="width:100%;min-height:48px;margin:6px 0 12px;padding:10px 12px;font:inherit;border:2px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)">
+      <button type="submit" style="width:100%;min-height:48px;border:0;border-radius:12px;background:var(--brand);color:var(--brand-ink);font-family:var(--display);font-weight:800;font-size:18px">Entrar</button>
+      <p id="gerr" class="note" role="alert" style="color:var(--bad);margin:10px 0 0" hidden></p>
+    </form>
+  </section>
+  <main id="view-supervisor" class="board" hidden></main>
+  <main id="view-rrhh" class="board" hidden></main>
+  <p class="disc">Prototipo académico del Grupo 2 · Intervenciones en Contextos Laborales (UPC). Propuesta de intervención para Punto Rojo; no es una herramienta oficial de la empresa.</p>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ===================== CONTENT ===================== */
+const MODS = [
+ { id:"epp", n:1, t:"Tu EPP", s:"Equipo de protección personal", sim:"epp",
+   aprende:[
+    {k:"porque", h:"¿Por qué importa?", p:"Trabajas con productos químicos. El EPP cuida tu piel, tus ojos y tus pulmones. Sin EPP completo, no hay servicio."},
+    {k:"pasos", h:"Cómo se hace", l:["Antes de cada servicio, revisa que tu EPP esté completo y sin roturas.","Ponte el mameluco y las botas.","Colócate el respirador y verifica que selle bien en tu cara.","Ponte los lentes y, al final, los guantes.","Al terminar, quítate el EPP y lávate manos y cara."]},
+    {k:"errores", h:"Errores comunes", l:["Trabajar sin respirador “porque es poquito”.","Comer, beber o fumar mientras aplicas.","Guardar el EPP sucio junto a tu ropa o tu comida."]},
+    {k:"duda", h:"Si tienes una duda", p:"Si algo falta o está roto, no empieces. Avisa a tu supervisor antes del servicio."}
+   ],
+   qs:[
+    {p:"¿Cuándo revisas tu EPP?", o:["Al final del día","Antes de cada servicio","Solo si se ve sucio"], c:1, x:"Se revisa antes de cada servicio, para no descubrir una rotura en plena aplicación.", tema:"revisar el EPP antes de cada servicio"},
+    {p:"¿Qué protege el respirador?", o:["Tus pulmones","Tus manos","Tus pies"], c:0, x:"El respirador filtra el aire que respiras mientras aplicas el producto.", tema:"para qué sirve el respirador"},
+    {p:"Se rompe tu guante mientras aplicas. ¿Qué haces?", o:["Sigo igual","Le pongo cinta","Paro, aviso y lo cambio"], c:2, x:"Un guante roto deja pasar el químico a tu piel. Paras, avisas y lo cambias.", tema:"qué hacer si el EPP se daña"},
+    {p:"¿Puedes comer mientras fumigas?", o:["Sí, si es rápido","No, nunca","Solo si uso guantes"], c:1, x:"Nunca. Podrías tragar restos del producto. Primero te quitas el EPP y te lavas.", tema:"no comer durante la aplicación"},
+    {p:"Al terminar el servicio, ¿qué haces primero?", o:["Me quito el EPP y me lavo","Como algo","Guardo el EPP con mi ropa"], c:0, x:"Primero te quitas el EPP y te lavas manos y cara.", tema:"qué hacer al terminar"}
+   ]},
+ { id:"gel", n:2, t:"Gel para cucarachas", s:"Aplicación en cocina", sim:"gel",
+   aprende:[
+    {k:"porque", h:"¿Por qué importa?", p:"El gel es un cebo: la cucaracha lo come, vuelve a su escondite y afecta a las demás. Por eso va donde ellas viven, no donde se ve."},
+    {k:"pasos", h:"Cómo se hace", l:["Busca rastros con tu linterna: excremento, cucarachas o huevos.","Aplica gotas pequeñas, del tamaño de una lenteja.","Ponlas en grietas, bisagras, detrás y debajo de equipos.","Mejor muchas gotas pequeñas que pocas grandes.","Anota los lugares donde aplicaste."]},
+    {k:"errores", h:"Errores comunes", l:["Poner gel en lugares visibles o en el centro del piso.","Aplicar cerca de alimentos o utensilios.","Saltarse los lugares escondidos: el cliente los revisa."]},
+    {k:"duda", h:"Si tienes una duda", p:"Si no llegas a un lugar escondido, no lo saltes: pide apoyo a un compañero o a tu supervisor."}
+   ],
+   qs:[
+    {p:"¿Dónde se aplica el gel?", o:["En el centro del piso","En grietas y detrás de equipos","Sobre las mesas"], c:1, x:"En grietas, bisagras y detrás de equipos: ahí se esconden las cucarachas.", tema:"dónde se aplica el gel"},
+    {p:"¿De qué tamaño son las gotas?", o:["Como una lenteja","Como una moneda","Un chorro largo"], c:0, x:"Gotas pequeñas, como una lenteja. Mejor muchas pequeñas que pocas grandes.", tema:"el tamaño de las gotas"},
+    {p:"¿Por qué funciona el gel?", o:["Las espanta","Huele bien","La cucaracha lo come y afecta a otras"], c:2, x:"Es un cebo: la cucaracha lo come y lo lleva a su escondite.", tema:"cómo actúa el gel"},
+    {p:"No llegas a un lugar escondido. ¿Qué haces?", o:["Lo salto","Pido apoyo","Pongo más gel en otro lado"], c:1, x:"Pides apoyo. Los lugares escondidos son los más importantes.", tema:"pedir apoyo en zonas difíciles"},
+    {p:"¿Qué debes evitar?", o:["Usar la linterna","Anotar los lugares","Aplicar cerca de alimentos"], c:2, x:"Nunca cerca de alimentos ni utensilios.", tema:"alejarse de los alimentos"}
+   ]},
+ { id:"informe", n:3, t:"Cierre e informe", s:"Para que el servicio se pueda cobrar", sim:"informe",
+   aprende:[
+    {k:"porque", h:"¿Por qué importa?", p:"Si el informe queda incompleto, la empresa no puede cobrar el servicio. Tu trabajo cuenta cuando queda registrado."},
+    {k:"pasos", h:"Cómo se hace", l:["Revisa que trataste todas las zonas del plan.","Recoge tus materiales y envases.","Dile al cliente cuánto esperar para volver a usar la zona.","Llena el informe: zonas, producto usado y observaciones.","Pide la firma de conformidad del cliente."]},
+    {k:"errores", h:"Errores comunes", l:["Dejar casillas vacías.","Escribir “todo ok” sin explicar qué viste.","Irte sin la firma del cliente."]},
+    {k:"duda", h:"Si tienes una duda", p:"Si no sabes cómo llenar una parte, pregúntale a tu supervisor antes de irte del local."}
+   ],
+   qs:[
+    {p:"Si el informe queda incompleto…", o:["No pasa nada","La empresa no puede cobrar","El cliente paga doble"], c:1, x:"Sin informe completo, el servicio no se puede facturar.", tema:"por qué importa el informe"},
+    {p:"Antes de irte, debes…", o:["Revisar todas las zonas del plan","Irte rápido","Dejar los envases"], c:0, x:"Revisas que no quedó ninguna zona sin tratar.", tema:"revisar todas las zonas"},
+    {p:"En “observaciones” escribes…", o:["“Todo ok”","Lo que viste, por ejemplo dónde había plagas","Nada"], c:1, x:"Describe lo que viste. “Todo ok” no le dice nada al cliente.", tema:"cómo llenar observaciones"},
+    {p:"El cliente no quiere firmar. ¿Qué haces?", o:["Me voy","Firmo yo","Le explico y aviso al supervisor"], c:2, x:"Explicas con amabilidad y, si no puede, avisas a tu supervisor.", tema:"conseguir la firma del cliente"},
+    {p:"Al terminar, ¿qué le dices al cliente?", o:["Cuánto esperar para usar la zona","Nada","Que limpie todo ya"], c:0, x:"Le indicas cuánto tiempo esperar antes de volver a usar la zona.", tema:"indicaciones al cliente"}
+   ]}
+];
+const REPASO = { id:"repaso", n:4, t:"Repaso al mes", s:"¿Recuerdas lo aprendido?",
+  qs:[
+   {p:"¿Cuándo revisas tu EPP?", o:["Antes de cada servicio","Una vez al mes","Nunca"], c:0, x:"Antes de cada servicio.", tema:"revisar el EPP"},
+   {p:"¿Dónde aplicas el gel?", o:["Sobre la comida","En grietas y lugares escondidos","En el centro del piso"], c:1, x:"En grietas y lugares escondidos.", tema:"dónde va el gel"},
+   {p:"¿De qué tamaño son las gotas?", o:["Un chorro largo","Como una moneda","Como una lenteja"], c:2, x:"Como una lenteja.", tema:"tamaño de las gotas"},
+   {p:"Si el informe queda incompleto…", o:["La empresa no puede cobrar","No pasa nada","Lo llena el cliente"], c:0, x:"La empresa no puede cobrar.", tema:"el informe"},
+   {p:"Tienes una duda en pleno servicio. ¿Qué haces?", o:["Lo invento","Paro y pregunto antes de seguir","Me salto ese paso"], c:1, x:"Paras y preguntas antes de seguir.", tema:"pedir ayuda a tiempo"}
+  ]};
+const ALL = [...MODS, REPASO];
+const modById = id => ALL.find(m=>m.id===id);
+
+/* Example pilot data (clearly marked as ejemplo in every view) */
+const DEMO = (()=>{
+  const d=[]; const day=86400000; const now=Date.now();
+  const add=(nombre,mod,ac,fall,pe,sat,ago)=>d.push({nombre,mod,aciertos:ac,total:5,color:colorOf(ac),falladas:fall,practicaErrores:pe,satisfaccion:sat,ts:now-ago*day,demo:true});
+  add("Carlos R.","epp",5,[],0,5,20); add("Carlos R.","gel",4,[1],1,4,18); add("Carlos R.","gel",5,[],0,5,17); add("Carlos R.","informe",5,[],1,5,15); add("Carlos R.","repaso",5,[],0,5,1);
+  add("Rosa P.","epp",5,[],0,5,16); add("Rosa P.","gel",5,[],0,4,14); add("Rosa P.","informe",4,[2],1,4,12);
+  add("José T.","epp",4,[2],1,4,10); add("José T.","gel",2,[1,3,4],3,3,8);
+  add("Kevin L.","epp",5,[],0,4,9); add("Kevin L.","gel",3,[1,4],2,4,7); add("Kevin L.","informe",2,[0,2,3],3,3,5);
+  add("Miguel A.","epp",5,[],1,5,6); add("Miguel A.","gel",4,[1],1,4,4);
+  add("Jhon C.","epp",3,[0,2],2,3,3);
+  add("Ana V.","epp",5,[],0,5,40); add("Ana V.","gel",5,[],1,5,38); add("Ana V.","informe",5,[],0,4,36); add("Ana V.","repaso",4,[2],0,4,3);
+  return d;
+})();
+const DEMO_FB = {"Carlos R.":{bien:"Aplicas el gel en los rincones correctos.",reforzar:"Nada urgente.",objetivo:"Acompañar a un compañero nuevo.",ts:Date.now()-2*86400000}};
+
+function colorOf(ac){ return ac>=5?"v":ac>=3?"a":"r"; }
+const COLOR_TXT={v:"Verde · Listo",a:"Amarillo · Repasar",r:"Rojo · Necesita apoyo",n:"Sin empezar"};
+
+/* ===================== STATE ===================== */
+const LS="adaptakit.v1";
+function load(){ try{ return JSON.parse(localStorage.getItem(LS)||"null"); }catch(e){ return null; } }
+function save(){ return; try{ localStorage.setItem(LS, JSON.stringify({nombre:S.nombre, attempts:S.attempts, feedback:S.feedback, unlocked:S.unlocked})); }catch(e){} }
+const saved = load()||{};
+const S = {
+  role:"operario", nombre:saved.nombre||"", attempts:saved.attempts||[], feedback:saved.feedback||{}, unlocked:!!saved.unlocked,
+  screen: saved.nombre ? "ruta" : "bienvenida",
+  mod:null, step:null, card:0, qi:0, ans:[], picked:null, revealed:false, sim:null, lastResult:null,
+  demo:true, selOp:null, help:false
+};
+
+/* ===================== HELPERS ===================== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const mine=()=>S.attempts.filter(a=>a.nombre===S.nombre);
+function bestColor(list,mod){ const l=list.filter(a=>a.mod===mod); if(!l.length) return "n"; return l[l.length-1].color; }
+function allData(){ return (S.demo?DEMO:[]).concat(S.attempts); }
+function ops(){ const m=new Map(); allData().forEach(a=>{ if(!m.has(a.nombre)) m.set(a.nombre,[]); m.get(a.nombre).push(a); }); return m; }
+
+const IC = {
+ back:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+ lock:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+ chat:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 9h6M9 12h4"/></svg>',
+ bulb:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg>',
+ star:(on)=>`<svg viewBox="0 0 24 24" fill="${on?'var(--amber)':'none'}" stroke="${on?'var(--amber)':'var(--muted)'}" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>`,
+ check:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
+ x:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
+
+/* ===================== SIDE PANEL (narrates the method) ===================== */
+const SIDE = {
+ bienvenida:{c:-1, h:"Un kit de bolsillo, ahora en el celular.", w:["La capacitación no termina cuando se da la charla.","ADAPTAKIT acompaña al operario nuevo después de la capacitación de SSOMA, en su celular y sin descargar nada. Quien no tenga celular usa el librito impreso: es el mismo contenido."]},
+ ruta:{c:3, h:"Mi ruta: el operario ve su avance.", w:["Autoeficacia","Ver lo que ya logró hace que se sienta capaz. Un operario que se siente capaz se frustra menos y es menos probable que renuncie."]},
+ aprende:{c:0, h:"Aprende: una sola tarea a la vez.", w:["Microcontenidos","Pasos, errores comunes y a quién acudir. Breve a propósito: la encuesta a operarios dijo que si es largo o muy teórico, no lo usan."]},
+ practica:{c:1, h:"Practica: como si estuviera en cancha.", w:["Transferencia del aprendizaje","No basta con saber: hay que aplicarlo en una situación parecida a la real (Ford, Baldwin y Prasad, 2018)."]},
+ comprueba:{c:2, h:"Comprueba: 5 preguntas, sin castigo.", w:["Idea de la entrevistada","Ella propuso un pequeño examen de 3 a 5 preguntas. Lo usamos como termómetro: detecta qué falta antes de que el error ocurra en el servicio."]},
+ resultado:{c:3, h:"Semáforo y feedback: el apoyo llega a tiempo.", w:["Seguimiento estructurado","El resultado llega al supervisor. Si sale rojo, sabe exactamente qué reenseñar en campo. La ayuda deja de ser informal."]}
+};
+function renderSide(){
+  const key = S.screen==="modulo" ? S.step : S.screen;
+  const d = SIDE[key]||SIDE.ruta;
+  const cyc=[["Aprende","Microcontenidos"],["Practica","Casos en cancha"],["Comprueba","Mini check"],["Adáptate","Ruta y feedback"]];
+  $("#side").innerHTML = `
+   <div class="eyebrow">Prototipo digital · Grupo 2</div>
+   <h2>${esc(d.h)}</h2>
+   <div class="cycle">${cyc.map((c,i)=>`<div class="cyc ${i===d.c?'on':''}"><i>${i+1}</i><b>${c[0]}</b><span>${c[1]}</span></div>`).join("")}</div>
+   <div class="why"><div class="ic">${IC.bulb}</div><div><b>${esc(d.w[0])}</b><p>${esc(d.w[1])}</p></div></div>
+   <div>
+     <p class="tiny" style="margin-bottom:8px"><b>El problema que corta ADAPTAKIT</b></p>
+     <div class="chain"><span>Capacitación</span>→<span class="k">no se aplica en campo</span>→<span class="k">informe mal hecho</span>→<span class="k">la empresa no cobra</span>→<span class="k">descuento y frustración</span>→<span class="k">rotación</span></div>
+     <div class="chain" style="margin-top:8px"><span class="f">ADAPTAKIT conecta la capacitación con el trabajo real</span></div>
+   </div>`;
+}
+
+/* ===================== OPERARIO APP ===================== */
+function render(){
+  renderSide();
+  const app=$("#app");
+  let h="";
+  if(S.screen==="bienvenida") h=vWelcome();
+  else if(S.screen==="ruta") h=vRuta();
+  else if(S.screen==="modulo") h=vModulo();
+  app.innerHTML=h + (S.help?vHelp():"");
+  if(S.screen==="modulo" && S.step==="practica") mountSim();
+  if(S.help) mountHelp();
+}
+
+function vWelcome(){
+  return `<div class="pad" style="justify-content:center">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button type="button" class="logo-slot big" data-act="pickLogo" aria-label="Poner el logo de la empresa"><span>+ Logo de la empresa</span></button><div class="redbar"></div>
+      <h3 style="font-family:var(--display);font-size:32px;font-weight:900;line-height:1">Bienvenido a tu primera semana.</h3>
+      <p class="muted" style="margin:0">Aquí repasas, practicas y compruebas lo que aprendiste en la capacitación. Una tarea a la vez.</p>
+    </div>
+    <label for="nombre" class="steplabel">¿Cómo te llamas?</label>
+    <input type="text" id="nombre" autocomplete="off" placeholder="Ej.: Luis" value="${esc(S.nombre)}">
+    <button class="btn" data-act="start">Empezar mi ruta</button>
+    <p class="tiny muted" style="margin:0">Funciona en cualquier celular, sin descargar nada.</p>
+  </div>`;
+}
+
+function vRuta(){
+  const m=mine();
+  const verdes=MODS.filter(md=>bestColor(m,md.id)==="v").length;
+  const pct=verdes/MODS.length; const C=2*Math.PI*26;
+  const fb=S.feedback[S.nombre];
+  const unlockedIdx = (i)=> i===0 || bestColor(m,MODS[i-1].id)==="v" || S.unlocked;
+  const repasoOpen = verdes===MODS.length || S.unlocked;
+  return `<div class="pad">
+    <div class="hello"><div><span class="muted tiny">Hola,</span><h3>${esc(S.nombre)}</h3></div>
+      <button class="linkbtn" data-act="logout">Cambiar</button></div>
+    <div class="ring-wrap">
+      <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="8"/><circle cx="32" cy="32" r="26" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pct)}" transform="rotate(-90 32 32)" style="transition:stroke-dashoffset .8s"/><text x="32" y="38" text-anchor="middle" font-family="Roboto Condensed,sans-serif" font-weight="900" font-size="17" fill="currentColor">${verdes}/3</text></svg>
+      <div><b>${verdes===3?"¡Ruta completa!":verdes===0?"Empieza por tu EPP":"Vas avanzando"}</b><span>${verdes===3?"Ya puedes trabajar con más autonomía.":"Pasas al siguiente capítulo cuando sacas verde."}</span></div>
+    </div>
+    ${fb?`<div class="card" style="border-color:var(--brand)"><div class="steplabel" style="margin-bottom:4px">Feedback de tu supervisor</div>
+      <div class="tiny"><b>Lo que haces bien:</b> ${esc(fb.bien)}<br><b>Lo que debes reforzar:</b> ${esc(fb.reforzar)}<br><b>Tu próximo objetivo:</b> ${esc(fb.objetivo)}</div></div>`:""}
+    <div class="steplabel">Mi ruta</div>
+    ${MODS.map((md,i)=>{ const c=bestColor(m,md.id); const open=unlockedIdx(i);
+      return `<button class="modcard" data-act="open" data-mod="${md.id}" ${open?"":"disabled"}>
+        <div class="modnum">${md.n}</div>
+        <div class="grow"><b>${md.t}</b><span class="tiny muted">${md.s}</span></div>
+        ${open?`<span class="chip ${c}"><span class="lamp ${c}"></span>${c==="n"?"Empezar":c==="v"?"Listo":c==="a"?"Repasar":"Apoyo"}</span>`:IC.lock}
+      </button>`;}).join("")}
+    <button class="modcard" data-act="open" data-mod="repaso" ${repasoOpen?"":"disabled"}>
+      <div class="modnum" style="background:var(--blue-soft);color:var(--blue)">4</div>
+      <div class="grow"><b>Repaso al mes</b><span class="tiny muted">${repasoOpen?"Comprueba si lo recuerdas":"Se abre al completar la ruta"}</span></div>
+      ${repasoOpen?`<span class="chip ${bestColor(m,"repaso")}"><span class="lamp ${bestColor(m,"repaso")}"></span>${bestColor(m,"repaso")==="n"?"Empezar":"Hecho"}</span>`:IC.lock}
+    </button>
+    ${S.unlocked?"":`<button class="linkbtn" data-act="unlock" style="align-self:center">Modo demo: abrir todos los capítulos</button>`}
+    <div class="helpbtn"><button class="btn dark" data-act="help">${IC.chat} Tengo una duda en campo</button></div>
+  </div>`;
+}
+
+function vModulo(){
+  const md=modById(S.mod);
+  const isRep = md.id==="repaso";
+  const order = isRep ? ["comprueba","resultado"] : ["aprende","practica","comprueba","resultado"];
+  const idx = order.indexOf(S.step);
+  const label = {aprende:"1 · Aprende",practica:"2 · Practica",comprueba:isRep?"Repaso":"3 · Comprueba",resultado:"4 · Adáptate"}[S.step];
+  let body="";
+  if(S.step==="aprende") body=vAprende(md);
+  else if(S.step==="practica") body=`<div id="sim" style="display:flex;flex-direction:column;gap:12px;flex:1"></div>`;
+  else if(S.step==="comprueba") body=vQuiz(md);
+  else body=vResultado(md);
+  return `<div class="mhead"><button class="back" data-act="home" aria-label="Volver a mi ruta">${IC.back}</button>
+      <div class="t"><small>Capítulo ${md.n}</small><b>${md.t}</b></div></div>
+    <div class="steps">${order.map((o,i)=>`<div class="${i<=idx?'on':''}"></div>`).join("")}</div>
+    <div class="pad" style="padding-top:2px"><div class="steplabel">${label}</div>${body}</div>`;
+}
+
+function vAprende(md){
+  const c=md.aprende[S.card]; const last=S.card===md.aprende.length-1;
+  let inner="";
+  if(c.k==="pasos") inner=`<ol>${c.l.map((t,i)=>`<li><span class="nn">${i+1}</span><span>${esc(t)}</span></li>`).join("")}</ol>`;
+  else if(c.k==="errores") inner=`<ul>${c.l.map(t=>`<li><span style="color:var(--bad);flex-shrink:0;margin-top:2px">${IC.x}</span><span>${esc(t)}</span></li>`).join("")}</ul>`;
+  else inner=`<p style="margin:0;font-size:19px;line-height:1.4">${esc(c.p)}</p>`;
+  return `<div class="lcard lc-${c.k}" key="${S.card}"><h3>${esc(c.h)}</h3>${inner}</div>
+    <div class="dots">${md.aprende.map((_,i)=>`<i class="${i===S.card?'on':''}"></i>`).join("")}</div>
+    <div class="row" style="margin-top:auto">
+      <button class="btn ghost" data-act="prevcard" ${S.card===0?"disabled":""}>Anterior</button>
+      <button class="btn" data-act="${last?'topractica':'nextcard'}">${last?"A practicar":"Siguiente"}</button>
+    </div>`;
+}
+
+function vQuiz(md){
+  const q=md.qs[S.qi];
+  const opts=q.o.map((t,i)=>{ let cl=""; if(S.revealed){ if(i===q.c) cl="ok"; else if(i===S.picked) cl="bad"; } else if(i===S.picked) cl="sel";
+    return `<button class="qopt ${cl}" data-act="pick" data-i="${i}" ${S.revealed?"disabled":""}><span class="bub"></span><span>${"abc"[i]}) ${esc(t)}</span></button>`;}).join("");
+  const ok = S.picked===q.c;
+  return `<div class="tiny muted">Pregunta ${S.qi+1} de ${md.qs.length}</div>
+    <h3 style="font-size:22px;font-weight:800;line-height:1.15">${esc(q.p)}</h3>
+    <div style="display:flex;flex-direction:column;gap:8px">${opts}</div>
+    ${S.revealed?`<div class="explain ${ok?'ok':'bad'}"><b>${ok?"¡Bien!":"Ojo:"}</b> ${esc(q.x)}</div>`:""}
+    <div style="margin-top:auto">${S.revealed
+      ? `<button class="btn" data-act="nextq">${S.qi===md.qs.length-1?"Ver mi semáforo":"Siguiente pregunta"}</button>`
+      : `<button class="btn" data-act="answer" ${S.picked===null?"disabled":""}>Responder</button>`}</div>`;
+}
+
+function feedbackFor(md,res){
+  const ok=md.qs.filter((q,i)=>!res.falladas.includes(i)).map(q=>q.tema);
+  const bad=res.falladas.map(i=>md.qs[i].tema);
+  const next = MODS[MODS.findIndex(m=>m.id===md.id)+1];
+  return {
+    bien: ok.length? cap(ok.slice(0,2).join(" y "))+"." : "Te animaste a responder todo: eso ya es avance.",
+    reforzar: bad.length? cap(bad.join(", "))+"." : "Nada por ahora. ¡Sigue así!",
+    objetivo: res.color==="v" ? (md.id==="repaso"?"Acompañar a un compañero nuevo en su primera semana.": next?`Empezar el capítulo ${next.n}: ${next.t}.`:"Hacer el repaso al mes.")
+            : res.color==="a" ? "Releer lo que fallaste y volver a responder."
+            : "Practicar esta tarea en campo junto a tu supervisor."
+  };
+}
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+
+function vResultado(md){
+  const r=S.lastResult; const f=feedbackFor(md,r);
+  const msg={v:"¡Listo! Ya dominas esta tarea.",a:"Casi. Repasa lo que fallaste.",r:"Tu supervisor te va a acompañar en campo."}[r.color];
+  return `<div class="sema">
+      <div class="pole" aria-label="Semáforo: ${COLOR_TXT[r.color]}">${["r","a","v"].map(c=>`<i class="${c}${S.lampDone&&c===r.color?" on":""}" id="l-${c}"></i>`).join("")}</div>
+      <div><div class="score">${r.aciertos}<span style="font-size:24px;color:var(--muted)">/5</span></div>
+        <div class="chip ${r.color}" style="margin-top:6px"><span class="lamp ${r.color}"></span>${COLOR_TXT[r.color]}</div>
+        <p style="margin:8px 0 0;font-weight:700;max-width:16ch">${msg}</p></div>
+    </div>
+    <div class="fb">
+      <div style="background:var(--ok-soft)"><b style="color:var(--ok)">Lo que ya haces bien</b>${esc(f.bien)}</div>
+      <div style="background:var(--warn-soft)"><b style="color:var(--warn)">Lo que debes reforzar</b>${esc(f.reforzar)}</div>
+      <div style="background:var(--blue-soft)"><b style="color:var(--blue)">Tu próximo objetivo</b>${esc(f.objetivo)}</div>
+    </div>
+    ${r.color==="r"?`<div class="alert"><span style="color:var(--bad)">${IC.check}</span><span class="tiny"><b>Aviso enviado a tu supervisor.</b> Te volverá a enseñar esta tarea mostrándote cómo se hace.</span></div>`:""}
+    <div class="card"><div class="tiny" style="font-weight:700;margin-bottom:2px">¿Qué tan útil te fue este capítulo?</div>
+      <div class="stars" role="group" aria-label="Calificación de 1 a 5">${[1,2,3,4,5].map(n=>`<button data-act="star" data-n="${n}" aria-label="${n} de 5">${IC.star(r.satisfaccion>=n)}</button>`).join("")}</div>
+      ${r.satisfaccion?`<div class="tiny muted">¡Gracias! Tu opinión llega a RR. HH.</div>`:""}</div>
+    <div class="row">
+      ${r.color!=="v"?`<button class="btn ghost" data-act="retry">Repasar y reintentar</button>`:""}
+      <button class="btn" data-act="home">Volver a mi ruta</button>
+    </div>`;
+}
+
+/* ===================== HELP (Claude assistant) ===================== */
+const FAQ = [
+ ["¿Cuánto gel pongo?","Gotas pequeñas, del tamaño de una lenteja. Mejor muchas pequeñas en grietas y bisagras que pocas grandes. Lejos de alimentos."],
+ ["Se rompió mi guante","Para de aplicar, aléjate del producto, avisa a tu supervisor y cámbialo. No sigas con el guante roto."],
+ ["El cliente no quiere firmar","Explícale con amabilidad que sin su firma el servicio no se cierra. Si no puede, avisa a tu supervisor antes de irte."],
+ ["No llego a un rincón","No lo saltes. Pide apoyo a un compañero o a tu supervisor para llegar con cuidado, y anótalo en el informe."]
+];
+let sampleFn=null, helpCtl=null;
+function vHelp(){
+  return `<div class="sheet" data-act="closehelp-bg"><div class="in" role="dialog" aria-label="Asistente de dudas en campo">
+    <div class="hello"><h3 style="font-size:20px">¿Tienes una duda?</h3><button class="back" data-act="closehelp" aria-label="Cerrar">${IC.x}</button></div>
+    <div class="qchips">${FAQ.map((f,i)=>`<button data-act="faq" data-i="${i}">${esc(f[0])}</button>`).join("")}</div>
+    <div id="askbox" ${sampleFn?"":"hidden"}><label for="duda" class="tiny" style="font-weight:700">O escríbela con tus palabras</label>
+      <textarea id="duda" rows="2" placeholder="Ej.: ¿Puedo poner gel debajo del lavadero?"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn" data-act="ask">Preguntar</button><button class="btn ghost" data-act="stop" id="stopbtn" hidden>Detener</button></div></div>
+    <div class="answer" id="answer">Toca una duda frecuente${sampleFn?" o escribe la tuya":""}.</div>
+    <p class="tiny muted" style="margin:0">Responde solo con lo que está en ADAPTAKIT. Si hay riesgo para tu salud, <b>detente y llama a tu supervisor</b>.</p>
+  </div></div>`;
+}
+function mountHelp(){ const t=$("#duda"); if(t) t.focus(); }
+const KIT_TEXT = MODS.map(m=>`${m.t}: `+m.aprende.map(c=>c.p||c.l.join(" ")).join(" ")).join("\n");
+async function ask(){
+  const q=($("#duda")?.value||"").trim(); const out=$("#answer"); if(!q||!sampleFn) return;
+  helpCtl?.abort(); helpCtl=new AbortController();
+  out.textContent="Pensando…"; $("#stopbtn").hidden=false;
+  const prompt = `Eres el asistente de bolsillo ADAPTAKIT para operarios nuevos de fumigación y control de plagas en Perú. Responde en español peruano muy sencillo, en máximo 3 oraciones cortas, tuteando. Usa SOLO este contenido del kit:\n${KIT_TEXT}\nReglas: si la duda implica riesgo para la salud, químicos o algo que el kit no cubre, di que se detenga y llame a su supervisor. No inventes dosis ni productos. No uses listas ni markdown.\n\nDuda del operario: ${q.slice(0,500)}`;
+  try{
+    await sampleFn(prompt,{modelTier:"quick",signal:helpCtl.signal,cache:false,onText:({text})=>{out.textContent=text;}});
+  }catch(e){
+    if(e&&e.code==="cancelled"){ out.textContent=e.text||"Detenido."; }
+    else if(e&&["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e.code)){ sampleFn=null; const b=$("#askbox"); if(b) b.hidden=true; out.textContent="El asistente no está disponible aquí. Usa las dudas frecuentes o llama a tu supervisor."; }
+    else if(e&&e.code==="rate_limited"){ out.textContent="Muchas preguntas seguidas. Intenta en un momento."; }
+    else { out.textContent=(e&&e.text)||"No se pudo responder ahora. Llama a tu supervisor."; }
+  }finally{ const s=$("#stopbtn"); if(s) s.hidden=true; }
+}
+
+/* ===================== SIMULATIONS ===================== */
+const EPP_ITEMS = [
+ {id:"mameluco",t:"Mameluco",ok:1,svg:'<path d="M8 3h8l1 5-2 1v12h-3v-8h-0v8H9V9L7 8z"/>'},
+ {id:"botas",t:"Botas de seguridad",ok:2,svg:'<path d="M7 3h5v11l6 2v5H6z"/><path d="M6 18h12"/>'},
+ {id:"respirador",t:"Respirador",ok:3,svg:'<path d="M5 9c2-3 12-3 14 0v4c-1 5-13 5-14 0z"/><circle cx="8" cy="13" r="2"/><circle cx="16" cy="13" r="2"/>'},
+ {id:"lentes",t:"Lentes",ok:4,svg:'<rect x="3" y="9" width="7" height="6" rx="2"/><rect x="14" y="9" width="7" height="6" rx="2"/><path d="M10 12h4"/>'},
+ {id:"guantes",t:"Guantes de nitrilo",ok:5,svg:'<path d="M8 21v-7l-2-4 1-1 2 2V4h2v6V3h2v7V4h2v7l1-3h2l-1 6-2 7z"/>'},
+ {id:"sandalias",t:"Sandalias",ok:0,why:"Las sandalias dejan tus pies expuestos al químico. Siempre botas de seguridad.",svg:'<path d="M7 4c3 0 4 3 4 7s-1 9-4 9-3-4-3-9 0-7 3-7z"/><path d="M5 10h5"/>'},
+ {id:"audifonos",t:"Audífonos con música",ok:0,why:"Con música no escuchas avisos ni alarmas. No es parte del EPP.",svg:'<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>'},
+ {id:"polo",t:"Polo de algodón",ok:0,why:"El algodón absorbe el producto y lo pega a tu piel. Va el mameluco.",svg:'<path d="M8 3l-5 3 2 4 3-1v12h8V9l3 1 2-4-5-3c-1 2-7 2-8 0z"/>'}
+];
+const ORDER_HINT=["","Primero, el mameluco: cubre tu cuerpo.","Luego, las botas de seguridad.","Después, el respirador: verifica que selle.","Ahora, los lentes.","Al final, los guantes."];
+
+function mountSim(){ const md=modById(S.mod); ({epp:simEPP,gel:simGel,informe:simInforme})[md.sim](); }
+function simDone(errors,msg){
+  S.sim.done=true; S.sim.errors=errors;
+  const box=$("#sim");
+  box.insertAdjacentHTML("beforeend",`<div class="toast ok" style="animation:pop .35s ease"><span style="color:var(--ok)">${IC.check}</span><span><b>${esc(msg)}</b> Errores en la práctica: ${errors}.</span></div>
+   <button class="btn" data-act="toquiz" style="margin-top:auto">Comprobar lo aprendido</button>`);
+  box.scrollIntoView({block:"end"});
+}
+
+function simEPP(){
+  const st=S.sim={step:1,errors:0,done:false};
+  const box=$("#sim");
+  const draw=()=>{
+    box.innerHTML=`<h3 style="font-size:21px;font-weight:800;line-height:1.15">Vístete para el servicio, en orden.</h3>
+     <p class="tiny muted" style="margin:0">Toca las prendas en el orden correcto. Ojo: hay cosas que <b>no</b> son EPP.</p>
+     <div class="slots">${[1,2,3,4,5].map(n=>{ const it=EPP_ITEMS.find(x=>x.ok===n); return `<div class="slot ${st.step>n?'f':''}">${st.step>n?`<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">${it.svg}</svg>`:n}</div>`;}).join("")}</div>
+     <div class="items">${EPP_ITEMS.map(it=>`<button class="item ${it.ok&&it.ok<st.step?'done':''}" data-eppi="${it.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">${it.svg}</svg>${esc(it.t)}</button>`).join("")}</div>
+     <div class="toast n" id="etoast">Paso ${Math.min(st.step,5)} de 5</div>`;
+    box.querySelectorAll("[data-eppi]").forEach(b=>b.addEventListener("click",()=>{
+      if(st.done) return;
+      const it=EPP_ITEMS.find(x=>x.id===b.dataset.eppi); const t=$("#etoast");
+      if(it.ok===st.step){ st.step++; draw();
+        const t2=$("#etoast");
+        if(st.step>5){ t2.className="toast ok"; t2.innerHTML=`<span style="color:var(--ok)">${IC.check}</span> EPP completo. ¡Listo para el servicio!`; simDone(st.errors,"¡Bien vestido!"); }
+        else { t2.className="toast ok"; t2.innerHTML=`<span style="color:var(--ok)">${IC.check}</span> ${esc(it.t)}: correcto. Sigue.`; }
+      } else { st.errors++; b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake");
+        t.className="toast bad"; t.innerHTML=`<span style="color:var(--bad)">${IC.x}</span><span>${esc(it.ok?("Todavía no. "+ORDER_HINT[st.step]):it.why)}</span>`; }
+    }));
+  };
+  draw();
+}
+
+function simGel(){
+  const st=S.sim={found:new Set(),errors:0,done:false};
+  const SPOTS=[
+   {id:"refri",x:300,y:150,r:26,ok:1,t:"Detrás de la refrigeradora: ahí se esconden. ¡Bien!"},
+   {id:"bisagra",x:62,y:96,r:20,ok:1,t:"Bisagra de la alacena: punto clásico. ¡Bien!"},
+   {id:"grieta",x:176,y:58,r:22,ok:1,t:"Grieta en la pared: correcto."},
+   {id:"lavadero",x:72,y:212,r:26,ok:1,t:"Debajo del lavadero: humedad y escondite. ¡Bien!"},
+   {id:"mesa",x:186,y:168,r:30,ok:0,t:"Sobre la mesa hay alimentos y utensilios. Nunca ahí."},
+   {id:"piso",x:186,y:236,r:30,ok:0,t:"El centro del piso se ve y se limpia: el gel no sirve ahí."},
+   {id:"cocina",x:300,y:72,r:22,ok:0,t:"Encima de la cocina hay calor y alimentos. No va gel."}
+  ];
+  const box=$("#sim");
+  box.innerHTML=`<h3 style="font-size:21px;font-weight:800;line-height:1.15">Usa tu linterna y aplica el gel.</h3>
+   <p class="tiny muted" style="margin:0">Mueve el dedo para alumbrar la cocina. Toca los <b>4 lugares</b> donde aplicarías gel.</p>
+   <div class="scene" id="scene"><svg viewBox="0 0 360 270" id="ksvg" role="img" aria-label="Cocina de restaurante a oscuras">
+    <defs>
+      <radialGradient id="beam"><stop offset="0" stop-color="#000"/><stop offset=".6" stop-color="#000"/><stop offset="1" stop-color="#fff"/></radialGradient>
+      <mask id="dark"><rect width="360" height="270" fill="#fff"/><circle id="beamc" cx="180" cy="135" r="62" fill="url(#beam)"/></mask>
+    </defs>
+    <rect width="360" height="190" fill="#CFC6B4"/><rect y="190" width="360" height="80" fill="#8E8778"/>
+    <g stroke="#B5AC98" stroke-width="1">${Array.from({length:9},(_,i)=>`<line x1="0" y1="${i*22}" x2="360" y2="${i*22}"/>`).join("")}</g>
+    <path d="M168 40 l6 10 -4 8 8 10 -3 9" fill="none" stroke="#5B4F3C" stroke-width="2.4"/>
+    <rect x="18" y="66" width="96" height="62" fill="#9C7A55" stroke="#6E5236" stroke-width="2"/><line x1="66" y1="66" x2="66" y2="128" stroke="#6E5236" stroke-width="2"/>
+    <rect x="60" y="86" width="5" height="10" fill="#C9C1AC"/><rect x="60" y="104" width="5" height="10" fill="#C9C1AC"/>
+    <rect x="18" y="150" width="110" height="62" fill="#B9BEC2" stroke="#7E858A" stroke-width="2"/><rect x="28" y="140" width="90" height="12" fill="#D7DBDE"/><path d="M73 118 v22" stroke="#7E858A" stroke-width="4"/>
+    <rect x="18" y="212" width="110" height="10" fill="#3B3A35"/>
+    <rect x="262" y="90" width="78" height="140" rx="6" fill="#E9ECEE" stroke="#9AA2A7" stroke-width="2"/><line x1="262" y1="140" x2="340" y2="140" stroke="#9AA2A7" stroke-width="2"/><rect x="330" y="102" width="4" height="26" fill="#9AA2A7"/>
+    <rect x="252" y="92" width="10" height="138" fill="#2E2C27"/>
+    <rect x="262" y="52" width="76" height="34" fill="#4A4A4A"/><circle cx="282" cy="62" r="7" fill="#6B6B6B"/><circle cx="318" cy="62" r="7" fill="#6B6B6B"/>
+    <rect x="140" y="160" width="92" height="10" fill="#7D5B3A"/><rect x="146" y="170" width="6" height="56" fill="#7D5B3A"/><rect x="220" y="170" width="6" height="56" fill="#7D5B3A"/>
+    <ellipse cx="170" cy="157" rx="14" ry="4" fill="#F4F1EA"/><rect x="196" y="146" width="12" height="12" fill="#C94A3A"/>
+    <g fill="#3A2614">${[[256,150],[258,170],[255,190],[60,92],[62,110],[176,60],[179,72],[60,214],[84,216],[100,214]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="1.7"/>`).join("")}
+      <ellipse cx="290" cy="234" rx="5" ry="3" transform="rotate(-20 290 234)"/><ellipse cx="94" cy="226" rx="5" ry="3" transform="rotate(15 94 226)"/></g>
+    <g id="marks"></g>
+    <rect width="360" height="270" fill="#05090A" fill-opacity=".9" mask="url(#dark)" pointer-events="none"/>
+    <g id="marks2"></g>
+   </svg></div>
+   <div class="toast n" id="gtoast">Encontrados: 0 de 4</div>`;
+  const svg=$("#ksvg"), beam=$("#beamc"), marks=$("#marks2");
+  const pt=e=>{ const p=svg.createSVGPoint(); p.x=e.clientX; p.y=e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); };
+  svg.addEventListener("pointermove",e=>{ const p=pt(e); beam.setAttribute("cx",p.x); beam.setAttribute("cy",p.y); });
+  svg.addEventListener("pointerdown",e=>{ const p=pt(e); beam.setAttribute("cx",p.x); beam.setAttribute("cy",p.y); });
+  svg.addEventListener("click",e=>{
+    if(st.done) return;
+    const p=pt(e); const t=$("#gtoast");
+    let hit=null,best=1e9; SPOTS.forEach(s=>{ const d=Math.hypot(s.x-p.x,s.y-p.y); if(d<s.r+8&&d<best){best=d;hit=s;} });
+    if(!hit){ t.className="toast n"; t.textContent="Ahí no hay nada. Busca rastros: puntitos oscuros cerca de grietas y equipos."; return; }
+    if(hit.ok){ if(st.found.has(hit.id)) return; st.found.add(hit.id);
+      marks.insertAdjacentHTML("beforeend",`<g style="animation:pop .3s ease;transform-origin:${hit.x}px ${hit.y}px"><circle cx="${hit.x}" cy="${hit.y}" r="11" fill="none" stroke="#34D46A" stroke-width="3"/><circle cx="${hit.x-3}" cy="${hit.y}" r="2.4" fill="#F2B705"/><circle cx="${hit.x+3}" cy="${hit.y+2}" r="2.4" fill="#F2B705"/><circle cx="${hit.x+1}" cy="${hit.y-3}" r="2.4" fill="#F2B705"/></g>`);
+      t.className="toast ok"; t.innerHTML=`<span style="color:var(--ok)">${IC.check}</span><span>${esc(hit.t)} (${st.found.size}/4)</span>`;
+      if(st.found.size===4){ simDone(st.errors,"¡Cocina tratada!"); }
+    } else { st.errors++;
+      marks.insertAdjacentHTML("beforeend",`<g><path d="M${hit.x-8} ${hit.y-8}l16 16M${hit.x+8} ${hit.y-8}l-16 16" stroke="#FF4B4B" stroke-width="3.5" stroke-linecap="round"/></g>`);
+      t.className="toast bad"; t.innerHTML=`<span style="color:var(--bad)">${IC.x}</span><span>${esc(hit.t)}</span>`; }
+  });
+}
+
+function simInforme(){
+  const st=S.sim={found:new Set(),errors:0,done:false};
+  const F=[
+   {id:"cliente",lb:"Cliente",v:"Restaurante El Sabor",bad:0},
+   {id:"zonas",lb:"Zonas tratadas",v:"Cocina, almacén",bad:0},
+   {id:"producto",lb:"Producto usado",v:"",bad:1,why:"Falta el producto usado. Sin ese dato, el informe no sirve.",fix:"Gel cebo"},
+   {id:"obs",lb:"Observaciones",v:"todo ok",bad:1,why:"“Todo ok” no dice nada. Hay que anotar lo que viste.",fix:"Rastros detrás de la refri"},
+   {id:"indic",lb:"Indicación al cliente",v:"No usar la zona por 2 horas",bad:0},
+   {id:"firma",lb:"Firma del cliente",v:"",bad:1,why:"Sin firma de conformidad, el servicio no se cierra.",fix:"J. Pérez"}
+  ];
+  const box=$("#sim");
+  const draw=()=>{
+    box.innerHTML=`<h3 style="font-size:21px;font-weight:800;line-height:1.15">Este informe no se puede cobrar. ¿Por qué?</h3>
+     <p class="tiny muted" style="margin:0">Toca los <b>3 errores</b> antes de entregarlo.</p>
+     <div class="inf">${F.map(f=>{ const fx=st.found.has(f.id);
+       return `<button class="ifield ${fx?'fixed':''}" data-inf="${f.id}"><span class="lb">${f.lb}</span><span class="vl">${fx?esc(f.fix):(f.v?esc(f.v):'<span style="color:var(--muted);font-family:var(--body)">— vacío —</span>')}</span></button>`;}).join("")}</div>
+     <div class="toast n" id="itoast">Errores encontrados: ${st.found.size} de 3</div>`;
+    box.querySelectorAll("[data-inf]").forEach(b=>b.addEventListener("click",()=>{
+      if(st.done) return; const f=F.find(x=>x.id===b.dataset.inf);
+      if(f.bad){ if(st.found.has(f.id)) return; st.found.add(f.id); draw(); const t=$("#itoast");
+        t.className="toast ok"; t.innerHTML=`<span style="color:var(--ok)">${IC.check}</span><span>${esc(f.why)} Corregido. (${st.found.size}/3)</span>`;
+        if(st.found.size===3) simDone(st.errors,"¡Informe listo para cobrar!");
+      } else { st.errors++; b.classList.add("wrong"); const t=$("#itoast"); t.className="toast bad"; t.innerHTML=`<span style="color:var(--bad)">${IC.x}</span><span>${esc(f.lb)} está bien llenado. Busca otro.</span>`; }
+    }));
+  };
+  draw();
+}
+
+/* ===================== ACTIONS ===================== */
+function openMod(id){
+  S.mod=id; S.screen="modulo"; S.simErrors=0; S.card=0; S.qi=0; S.ans=[]; S.picked=null; S.revealed=false;
+  S.step = id==="repaso" ? "comprueba" : "aprende"; render(); scrollTopApp();
+}
+function scrollTopApp(){ const a=$("#app"); if(a) a.scrollTop=0; }
+function finishQuiz(){
+  const md=modById(S.mod);
+  const fall=[]; md.qs.forEach((q,i)=>{ if(S.ans[i]!==q.c) fall.push(i); });
+  const ac=md.qs.length-fall.length;
+  const r={nombre:S.nombre,mod:md.id,aciertos:ac,total:md.qs.length,color:colorOf(ac),falladas:fall,practicaErrores:md.id==='repaso'?0:(S.simErrors||0),satisfaccion:null,ts:Date.now()};
+  S.attempts.push(r); S.lastResult=r; S.lampDone=false; S.step="resultado"; save(); render(); scrollTopApp();
+  setTimeout(()=>{ ["r","a","v"].forEach((c,i)=>setTimeout(()=>{ const el=$("#l-"+c); if(el){ el.classList.add("on"); setTimeout(()=>{ if(c!==r.color) el.classList.remove("on"); },260);} if(i===2) S.lampDone=true; },i*260)); },120);
+}
+
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-act],[data-role]"); if(!b) return;
+  if(b.dataset.role){ setRole(b.dataset.role); return; }
+  const a=b.dataset.act;
+  if(a==="closehelp-bg"){ if(e.target!==b) return; S.help=false; helpCtl?.abort(); render(); return; }
+  switch(a){
+   case "pickLogo": document.getElementById("logoFile").click(); break;
+   case "start": { const v=($("#nombre").value||"").trim().slice(0,30); if(!v){ $("#nombre").focus(); return; } S.nombre=v; S.screen="ruta"; save(); render(); break; }
+   case "logout": S.screen="bienvenida"; render(); break;
+   case "unlock": S.unlocked=true; save(); render(); break;
+   case "open": openMod(b.dataset.mod); break;
+   case "home": S.screen="ruta"; S.mod=null; render(); scrollTopApp(); break;
+   case "nextcard": S.card++; render(); break;
+   case "prevcard": S.card=Math.max(0,S.card-1); render(); break;
+   case "topractica": S.step="practica"; render(); scrollTopApp(); break;
+   case "toquiz": S.simErrors=S.sim?S.sim.errors:0; S.sim=null; S.step="comprueba"; S.qi=0; S.ans=[]; S.picked=null; S.revealed=false; render(); scrollTopApp(); break;
+   case "pick": S.picked=+b.dataset.i; render(); break;
+   case "answer": if(S.picked===null) return; S.ans[S.qi]=S.picked; S.revealed=true; render(); break;
+   case "nextq": { const md=modById(S.mod); if(S.qi<md.qs.length-1){ S.qi++; S.picked=null; S.revealed=false; render(); scrollTopApp(); } else finishQuiz(); break; }
+   case "star": { const n=+b.dataset.n; S.lastResult.satisfaccion=n; save(); render(); break; }
+   case "retry": { const id=S.mod; openMod(id); if(id!=="repaso"){ S.step="aprende"; render(); } break; }
+   case "help": S.help=true; render(); break;
+   case "closehelp": S.help=false; helpCtl?.abort(); render(); break;
+   case "faq": { const f=FAQ[+b.dataset.i]; const out=$("#answer"); out.textContent=f[1]; break; }
+   case "ask": ask(); break;
+   case "stop": helpCtl?.abort(); break;
+   case "demo": S.demo=b.checked; renderBoards(); break;
+   case "selop": S.selOp=b.dataset.n; renderSup(); document.getElementById("drawer")?.scrollIntoView({behavior:"smooth",block:"nearest"}); break;
+   case "closeop": S.selOp=null; renderSup(); break;
+   case "sendfb": { const n=S.selOp; S.feedback[n]={bien:$("#fb-b").value.trim(),reforzar:$("#fb-r").value.trim(),objetivo:$("#fb-o").value.trim(),ts:Date.now()}; save(); syncFb(n); S.sent=n; renderSup(); break; }
+  }
+});
+document.addEventListener("change",e=>{ if(e.target.id==="demo-t"||e.target.id==="demo-t2"){ S.demo=e.target.checked; renderBoards(); } });
+document.addEventListener("keydown",e=>{ if(e.key==="Enter"&&e.target.id==="nombre"){ e.preventDefault(); document.querySelector('[data-act="start"]').click(); } if(e.key==="Escape"&&S.help){ S.help=false; render(); } });
+
+function setRole(r){
+  S.role=r;
+  document.querySelectorAll("[data-role]").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.role===r)));
+  $("#view-supervisor").hidden=r!=="supervisor"; $("#view-rrhh").hidden=r!=="rrhh";
+  renderBoards();
+}
+function renderBoards(){ if(S.role==="supervisor") renderSup(); if(S.role==="rrhh") renderRRHH(); }
+
+/* ===================== SUPERVISOR ===================== */
+function demoToggle(id){ return `<label class="toggle"><input type="checkbox" id="${id}" ${S.demo?"checked":""}> Incluir datos de ejemplo</label>`; }
+function renderSup(){
+  const m=ops(); const rows=[...m.entries()];
+  const alerts=[]; rows.forEach(([n,l])=>MODS.forEach(md=>{ if(bestColor(l,md.id)==="r"){ const last=l.filter(a=>a.mod===md.id).pop(); alerts.push({n,md,last}); } }));
+  const sel=S.selOp && m.get(S.selOp);
+  let drawer="";
+  if(sel){
+    const lastBad=[]; MODS.forEach(md=>{ const last=sel.filter(a=>a.mod===md.id).pop(); if(last) last.falladas.forEach(i=>lastBad.push(md.qs[i].tema)); });
+    const okT=[]; MODS.forEach(md=>{ if(bestColor(sel,md.id)==="v") okT.push(md.t); });
+    const pe=sel.reduce((s,a)=>s+(a.practicaErrores||0),0);
+    const pf=S.feedback[S.selOp]||DEMO_FB[S.selOp];
+    drawer=`<section class="drawer" id="drawer" aria-label="Detalle de ${esc(S.selOp)}">
+      <div class="bhead"><div><h3 style="font-size:22px;font-weight:900">${esc(S.selOp)}</h3><p class="note">${sel.some(a=>a.demo)?"Operario de ejemplo · ":""}${sel.length} intentos · ${pe} errores en prácticas</p></div><button class="linkbtn" data-act="closeop">Cerrar</button></div>
+      <div class="tiny"><b>Debe reforzar:</b> ${lastBad.length?esc(cap(lastBad.join(", "))):"nada pendiente"}.</div>
+      ${S.sent===S.selOp?`<div class="toast ok"><span style="color:var(--ok)">${IC.check}</span> Feedback enviado. ${S.selOp===S.nombre?"Ya aparece en la ruta del operario.":""}</div>`:""}
+      <label for="fb-b">Lo que ya haces bien</label><textarea id="fb-b" rows="2">${esc(pf?.bien||(okT.length?"Dominas: "+okT.join(", ")+".":"Te esfuerzas y preguntas cuando tienes dudas."))}</textarea>
+      <label for="fb-r">Lo que debes reforzar</label><textarea id="fb-r" rows="2">${esc(pf?.reforzar||(lastBad.length?cap(lastBad.slice(0,2).join(" y "))+".":"Nada urgente."))}</textarea>
+      <label for="fb-o">Tu próximo objetivo</label><textarea id="fb-o" rows="2">${esc(pf?.objetivo||"Esta semana, hacerlo solo con mi revisión al final.")}</textarea>
+      <p class="note" style="margin:0">Guía del psicólogo: empieza por lo que hace bien, habla de la tarea (no de la persona) y cierra con un solo objetivo.</p>
+      <button class="btn" data-act="sendfb">Enviar feedback a ${esc(S.selOp)}</button>
+    </section>`;
+  }
+  $("#view-supervisor").innerHTML=`
+    <div class="bhead"><div><h2>Mi cuadrilla</h2><p>Lo que antes era ayuda informal, ahora es un seguimiento claro: quién está listo, quién necesita repasar y a quién acompañar en campo.</p></div>${demoToggle("demo-t")}</div>
+    ${alerts.length?`<div class="panel"><h3>Necesitan apoyo en campo hoy</h3>${alerts.map(x=>`<div class="alert"><span class="lamp r" style="margin-top:6px"></span><div style="flex:1"><b>${esc(x.n)}</b> · ${esc(x.md.t)} (${x.last.aciertos}/5)${x.last.demo?' <span class="note">(ejemplo)</span>':''}<div class="tiny">Reenseñar en campo: ${esc(x.last.falladas.map(i=>x.md.qs[i].tema).join(", "))}.</div></div><button class="linkbtn" data-act="selop" data-n="${esc(x.n)}">Ver</button></div>`).join("")}</div>`:""}
+    ${drawer}
+    <div class="panel"><h3>Avance por operario</h3>
+     ${rows.length?`<div class="tbl"><table><thead><tr><th>Operario</th>${MODS.map(md=>`<th>${md.n} · ${md.t}</th>`).join("")}<th>Repaso</th><th></th></tr></thead><tbody>
+      ${rows.map(([n,l])=>`<tr class="${n===S.nombre&&!l.every(a=>a.demo)?'me':''}"><td><b>${esc(n)}</b>${l.every(a=>a.demo)?' <span class="note">(ejemplo)</span>':''}</td>${[...MODS,REPASO].map(md=>{const c=bestColor(l,md.id);return `<td><span class="mini"><span class="lamp ${c}"></span><span class="tiny">${c==="n"?"—":c==="v"?"Listo":c==="a"?"Repasar":"Apoyo"}</span></span></td>`;}).join("")}<td><button class="linkbtn" data-act="selop" data-n="${esc(n)}">Feedback</button></td></tr>`).join("")}
+     </tbody></table></div>`:`<div class="empty">Aún no hay operarios. Completa un capítulo en la vista Operario y aparecerá aquí al instante.</div>`}
+    </div>`;
+}
+
+/* ===================== RR.HH. DASHBOARD ===================== */
+function renderRRHH(){
+  const d=allData(); const m=ops();
+  const sats=d.filter(a=>a.satisfaccion); const sat=sats.length?sats.reduce((s,a)=>s+a.satisfaccion,0)/sats.length:null;
+  const rep=d.filter(a=>a.mod==="repaso");
+  const retBase = rep.length?rep:[];
+  const ret = retBase.length? retBase.reduce((s,a)=>s+a.aciertos/a.total,0)/retBase.length : null;
+  const firstTry = []; m.forEach(l=>MODS.forEach(md=>{ const f=l.find(a=>a.mod===md.id); if(f) firstTry.push(f); }));
+  const nOps=m.size||0;
+  const errs = nOps? d.reduce((s,a)=>s+(a.practicaErrores||0),0)/nOps : null;
+  const pctFirst = firstTry.length? firstTry.filter(a=>a.color==="v").length/firstTry.length : null;
+  // weakest questions
+  const qstat=[]; MODS.forEach(md=>md.qs.forEach((q,i)=>{ let tot=0,bad=0; m.forEach(l=>{ const f=l.find(a=>a.mod===md.id); if(f){ tot++; if(f.falladas.includes(i)) bad++; } }); if(tot) qstat.push({md,q,rate:bad/tot,tot}); }));
+  qstat.sort((a,b)=>b.rate-a.rate);
+  const weak=qstat.filter(x=>x.rate>0).slice(0,4);
+  const dist=MODS.map(md=>{ let v=0,a=0,r=0,n=0; m.forEach(l=>{ const c=bestColor(l,md.id); if(c==="v")v++; else if(c==="a")a++; else if(c==="r")r++; else n++; }); return {md,v,a,r,n,t:Math.max(1,v+a+r+n)}; });
+  const fmt=(x,dec=1)=>x==null?"—":x.toFixed(dec).replace(".",",");
+  $("#view-rrhh").innerHTML=`
+   <div class="bhead"><div><span class="live">EN VIVO</span><h2>¿Está funcionando ADAPTAKIT?</h2><p>Tres indicadores para saber si el operario lo valora, si recuerda lo aprendido y si lo aplica bien.</p></div>${demoToggle("demo-t2")}</div>
+   <div class="kpis">
+    <div class="kpi"><span class="lbl">Nivel de satisfacción</span><span class="val">${fmt(sat)}<small> / 5</small></span><div class="bar"><i style="width:${sat?sat/5*100:0}%;background:var(--amber)"></i></div><span class="q">¿Le sirvió? Estrellas al terminar cada capítulo · ${sats.length} respuestas</span></div>
+    <div class="kpi"><span class="lbl">Retención del conocimiento</span><span class="val">${ret==null?"—":Math.round(ret*100)}<small>%</small></span><div class="bar"><i style="width:${ret?ret*100:0}%;background:var(--blue)"></i></div><span class="q">¿Lo recuerda? Aciertos en el repaso al mes · ${rep.length} repasos</span></div>
+    <div class="kpi"><span class="lbl">Errores operativos</span><span class="val">${fmt(errs)}<small> por operario</small></span><div class="bar"><i style="width:${errs?Math.min(100,errs/8*100):0}%;background:var(--bad)"></i></div><span class="q">¿Lo aplica? Errores en las prácticas de campo · meta: que baje</span></div>
+   </div>
+   <div class="grid2">
+    <div class="panel"><h3>Semáforo por capítulo</h3>
+      ${dist.map(x=>`<div class="srow"><span class="tiny"><b>${x.md.n} · ${x.md.t}</b></span>
+        <div class="stack" role="img" aria-label="${x.v} verde, ${x.a} amarillo, ${x.r} rojo">
+          <i style="width:${x.v/x.t*100}%;background:var(--ok)">${x.v||""}</i><i style="width:${x.a/x.t*100}%;background:var(--amber);color:var(--amber-ink)">${x.a||""}</i><i style="width:${x.r/x.t*100}%;background:var(--bad)">${x.r||""}</i><i style="width:${x.n/x.t*100}%;background:var(--line);color:var(--muted)">${x.n||""}</i>
+        </div><span class="tiny muted" style="text-align:right">${x.v+x.a+x.r}</span></div>`).join("")}
+      <div class="row tiny muted" style="flex-wrap:wrap;gap:12px"><span class="mini"><span class="lamp v"></span>Listo</span><span class="mini"><span class="lamp a"></span>Repasar</span><span class="mini"><span class="lamp r"></span>Apoyo</span><span class="mini"><span class="lamp n"></span>Sin empezar</span></div>
+      <p class="note" style="margin:0">Verde al primer intento: <b>${pctFirst==null?"—":Math.round(pctFirst*100)+"%"}</b> · Operarios: <b>${nOps}</b></p>
+    </div>
+    <div class="panel"><h3>Qué reforzar en la próxima capacitación</h3>
+      ${weak.length?`<div class="weak">${weak.map(w=>`<div><div><div class="tiny"><b>${esc(cap(w.q.tema))}</b> <span class="muted">· ${w.md.t}</span></div><div class="bar" style="margin-top:4px"><i style="width:${w.rate*100}%;background:var(--bad)"></i></div></div><b>${Math.round(w.rate*100)}%</b></div>`).join("")}</div>
+      <p class="note" style="margin:0">% de operarios que fallaron en su primer intento. Si muchos fallan lo mismo, el problema está en cómo se enseñó, no en ellos: el psicólogo lo lleva a SSOMA para mejorar ese tema.</p>`
+      :`<div class="empty">Cuando los operarios respondan, aquí verás los temas que más fallan.</div>`}
+    </div>
+   </div>
+   <p class="note">${S.demo?"Incluye 7 operarios de ejemplo (ficticios) para mostrar cómo se vería el panel. ":""}Los intentos hechos en la vista Operario se suman al instante.</p>`;
+}
+
+/* ===================== LOGO (provided by the user) ===================== */
+let LOGO=null; try{ LOGO=localStorage.getItem("adaptakit.logo"); }catch(e){}
+function applyLogo(){ document.querySelectorAll(".logo-slot").forEach(el=>{ if(LOGO && !el.querySelector("img")){ el.classList.add("has"); el.innerHTML='<img alt="Logo de la empresa" src="'+LOGO+'">'; } }); }
+document.addEventListener("change",e=>{ if(e.target.id!=="logoFile") return; const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=()=>{ LOGO=rd.result; try{ localStorage.setItem("adaptakit.logo",LOGO); }catch(err){} applyLogo(); }; rd.readAsDataURL(f); });
+new MutationObserver(applyLogo).observe(document.body,{childList:true,subtree:true});
+
+/* ===================== ACCESO POR CÓDIGO ===================== */
+let CODE=null, ROL=null; const UIDN={}, FBU={};
+async function api(name,body){
+  const r=await fetch("/.netlify/functions/"+name,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({})); if(!r.ok){ const e=new Error(j.error||"Error"); e.status=r.status; throw e; } return j;
+}
+function syncFb(n){ const id=UIDN[n]; if(CODE&&id) api("enviar-feedback",{code:CODE,id,fb:S.feedback[n]}).catch(()=>{}); }
+function softBoards(){ const t=document.activeElement&&document.activeElement.tagName; if(t!=="TEXTAREA"&&t!=="INPUT") renderBoards(); }
+async function cargar(first){
+  const j=await api("panel",{code:CODE}); ROL=j.rol;
+  const all=[]; j.operarios.forEach(o=>{ (o.attempts||[]).forEach(a=>all.push({...a,nombre:a.nombre||o.nombre})); UIDN[o.nombre]=o.id; });
+  S.attempts=all; for(const id in j.feedback) FBU[id]=j.feedback[id];
+  for(const n in UIDN){ const f=FBU[UIDN[n]]; if(f) S.feedback[n]=f; }
+  if(first){
+    document.getElementById("gate").hidden=true; document.getElementById("rolnav").hidden=false;
+    document.getElementById("tab-rrhh").hidden=ROL!=="rrhh";
+    setRole(ROL==="rrhh"?"rrhh":"supervisor");
+    setInterval(()=>cargar(false).catch(()=>{}),20000);
+  } else softBoards();
+}
+document.getElementById("gform").addEventListener("submit",async e=>{
+  e.preventDefault(); const err=document.getElementById("gerr"); err.hidden=true; CODE=document.getElementById("code").value.trim();
+  try{ await cargar(true); }
+  catch(x){ CODE=null; err.hidden=false; err.textContent=x.status===401?"Código incorrecto.":(x.message||"No se pudo conectar. Intenta de nuevo."); }
+});
+
+/* ===================== BOOT ===================== */
+S.attempts=[]; S.feedback={};
+(async()=>{ try{ const s=await window.claude?.use?.("sample"); if(s){ sampleFn=s; if(S.help) render(); } }catch(e){} })();
+})();
+</script>
+</body>
+</html>
